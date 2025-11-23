@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Triplicane Mess - Smart Bot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #008069; 
+            --secondary: #25D366;
+            --bg-color: #E0E0E0;
+            --chat-bg: #E5DDD5;
+            --card-bg: #ffffff;
+            --text-dark: #1F2937;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--chat-bg);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #008069 0%, #00a884 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            z-index: 20;
+        }
+        
+        .status-dot {
+            height: 10px; width: 10px; background: #00FF00; border-radius: 50%; 
+            display: inline-block; margin-right: 5px; box-shadow: 0 0 5px #00FF00;
+        }
+
+        /* Chat Area */
+        .chat-window {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            padding-bottom: 100px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            position: relative;
+            line-height: 1.4;
+            animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .bot-msg { 
+            background-color: var(--card-bg); 
+            border-top-left-radius: 0;
+            box-shadow: var(--shadow);
+            color: var(--text-dark);
+        }
+        
+        .user-msg { 
+            background-color: #d9fdd3; 
+            align-self: flex-end; 
+            margin-left: auto;
+            border-top-right-radius: 0;
+            box-shadow: var(--shadow);
+            color: var(--text-dark);
+        }
+
+        /* Menu Grid */
+        .menu-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .menu-card {
+            background: white;
+            padding: 10px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.1s;
+        }
+        .menu-card:active { transform: scale(0.98); }
+
+        .menu-img {
+            width: 70px; height: 70px; border-radius: 12px; 
+            object-fit: cover; margin-right: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .menu-info h4 { margin: 0 0 5px 0; font-size: 15px; color: #333; }
+        .menu-info span { color: var(--primary); font-weight: bold; font-size: 14px; }
+
+        .qty-control {
+            margin-left: auto;
+            background: #f0f2f5;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+
+        .qty-btn {
+            width: 32px; height: 32px; border: none; border-radius: 50%;
+            background: white; color: var(--primary);
+            font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .qty-count { width: 25px; text-align: center; font-weight: 600; font-size: 14px; }
+
+        /* Floating Checkout Button */
+        #checkoutBtn {
+            position: absolute; bottom: 25px; left: 50%;
+            transform: translateX(-50%) scale(0);
+            background: var(--text-dark); color: white;
+            padding: 14px 30px; border-radius: 50px; font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); cursor: pointer;
+            z-index: 100; display: flex; justify-content: space-between; align-items: center;
+            width: 80%; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #checkoutBtn.visible { transform: translateX(-50%) scale(1); }
+
+        /* Input Area */
+        .input-area {
+            position: absolute; bottom: 0; width: 100%;
+            background: white; padding: 10px 15px;
+            box-sizing: border-box; display: none; align-items: center;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        input {
+            flex: 1; padding: 12px 20px; border: 1px solid #ddd;
+            border-radius: 25px; outline: none; font-size: 15px;
+            background: #f9f9f9; transition: 0.3s;
+        }
+        input:focus { border-color: var(--primary); background: #fff; }
+
+        .send-btn {
+            width: 45px; height: 45px; margin-left: 10px;
+            background: var(--primary); color: white; border: none;
+            border-radius: 50%; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; font-size: 18px;
+        }
+
+        /* Animations */
+        .fly-item {
+            position: absolute; width: 20px; height: 20px;
+            background: var(--primary); border-radius: 50%;
+            z-index: 1000; pointer-events: none;
+        }
+        
+        .success-checkmark { width: 80px; height: 80px; margin: 0 auto; }
+        .check-icon { width: 80px; height: 80px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; box-shadow: inset 0px 0px 0px #7ac142; animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both; }
+        .check-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: #7ac142; fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+        .check-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; }
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 50px #7ac142; } }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <div style="display:flex; align-items:center;">
+            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display:flex; align-items:center; justify-content:center; margin-right:12px; font-weight:bold; font-size:18px;">TM</div>
+            <div>
+                <h3 style="margin:0; font-size:16px;">Triplicane Mess</h3>
+                <div style="font-size:11px; opacity:0.9; display:flex; align-items:center;">
+                    <span class="status-dot"></span> Online
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-window" id="chatBox"></div>
+
+    <div id="checkoutBtn" onclick="startCheckout()">
+        <span id="cartCount">0 Items</span>
+        <span>View Cart <i style="margin-left:5px;">➔</i></span>
+    </div>
+
+    <div class="input-area" id="inputArea">
+        <input type="text" id="userInput" placeholder="Name Phone Address (Eg: Raja 9876543210 Mylapore)" onkeypress="handleKeyPress(event)">
+        <button class="send-btn" onclick="processInput()">➤</button>
+    </div>
+</div>
+
+<script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxDPY5uKFVZWdlsNl3v6N0PEkilf-BeBUW2Xzne9nqYsKidNpfxqbHtkLVYk8j7DkK2mA/exec"; 
+    const ownerNumber = "916379914185"; 
+    const SHOP_ID = "mess_001"; 
+
+    const menuItems = [
+        { id: 1, name: "Sambar Sadham", price: 50, qty: 0, img: "https://b.zmtcdn.com/data/dish_photos/458/68383f9450a8677c385f9392e2136458.jpg" },
+        { id: 2, name: "Curd Rice", price: 40, qty: 0, img: "https://www.indianhealthyrecipes.com/wp-content/uploads/2022/02/curd-rice-thayir-sadam.jpg" },
+        { id: 3, name: "Veg Meals", price: 90, qty: 0, img: "https://res.cloudinary.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_1024/iivuhjc2pydjanhwp7mp" },
+        { id: 4, name: "Parotta (2pcs)", price: 30, qty: 0, img: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Parotta_Kurma.jpg" }, 
+        { id: 5, name: "Chicken 65", price: 80, qty: 0, img: "https://www.indianhealthyrecipes.com/wp-content/uploads/2022/03/chicken-65-restaurant-style-500x375.jpg" },
+        { id: 6, name: "Fried Rice", price: 100, qty: 0, img: "https://www.indianhealthyrecipes.com/wp-content/uploads/2021/07/chicken-fried-rice-recipe.jpg" },
+        { id: 7, name: "Omelette", price: 20, qty: 0, img: "https://www.mykitchenlove.com/wp-content/uploads/2018/03/Perfect-Omelette-Recipe-sq-1.jpg" }
+    ];
+
+    let step = 0; 
+    let customerData = {};
+
+    window.onload = () => { checkSubscription(); };
+
+    function checkSubscription() {
+        addMsg("bot", "Checking Menu... 🔄");
+        fetch(scriptURL + "?shopId=" + SHOP_ID)
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('chatBox').innerHTML = ""; 
+            if (d.status === "ACTIVE") renderMenu();
+            else addMsg("bot", "⚠️ Service Suspended.");
+        })
+        .catch(() => { document.getElementById('chatBox').innerHTML = ""; renderMenu(); });
+    }
+
+    function renderMenu() {
+        let menuHTML = `<div class="menu-grid">`;
+        menuItems.forEach(item => {
+            menuHTML += `
+            <div class="menu-card">
+                <img src="${item.img}" class="menu-img">
+                <div class="menu-info">
+                    <h4>${item.name}</h4>
+                    <span>₹${item.price}</span>
+                </div>
+                <div class="qty-control">
+                    <button class="qty-btn" onclick="updateQty(this, ${item.id}, -1)">-</button>
+                    <span class="qty-count" id="qty-${item.id}">${item.qty}</span>
+                    <button class="qty-btn" onclick="updateQty(this, ${item.id}, 1)">+</button>
+                </div>
+            </div>`;
+        });
+        menuHTML += `</div>`;
+        addMsg("bot", `👋 Welcome! <b>Triplicane Mess</b>.<br>என்ன சாப்பிடுறீங்க? 👇`);
+        const chatBox = document.getElementById('chatBox');
+        const div = document.createElement('div'); div.style.width="100%"; div.innerHTML = menuHTML;
+        chatBox.appendChild(div); scrollToBottom();
+    }
+
+    function updateQty(btn, id, change) {
+        const item = menuItems.find(i => i.id === id);
+        if (item && item.qty + change >= 0) {
+            item.qty += change;
+            document.getElementById(`qty-${id}`).innerText = item.qty;
+            if (change > 0) flyToCart(btn);
+            updateCartButton();
+        }
+    }
+
+    function flyToCart(sourceBtn) {
+        const cartBtn = document.getElementById('checkoutBtn');
+        const flyer = document.createElement('div');
+        flyer.classList.add('fly-item');
+        const s = sourceBtn.getBoundingClientRect();
+        const e = cartBtn.getBoundingClientRect();
+        flyer.style.left = (s.left + 10) + 'px'; flyer.style.top = (s.top + 10) + 'px';
+        document.body.appendChild(flyer);
+        flyer.animate([
+            { transform: `translate(0,0) scale(1)` },
+            { transform: `translate(${(e.left+e.width/2)-(s.left+10)}px, ${(e.top+e.height/2)-(s.top+10)}px) scale(0.2)` }
+        ], { duration: 500, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }).onfinish = () => {
+            flyer.remove();
+            cartBtn.animate([{transform: 'translateX(-50%) scale(1)'}, {transform: 'translateX(-50%) scale(1.1)'}, {transform: 'translateX(-50%) scale(1)'}], 200);
+        };
+    }
+
+    function updateCartButton() {
+        const btn = document.getElementById('checkoutBtn');
+        const total = menuItems.reduce((s, i) => s + (i.price * i.qty), 0);
+        const count = menuItems.reduce((s, i) => s + i.qty, 0);
+        if (count > 0) {
+            btn.classList.add('visible');
+            document.getElementById('cartCount').innerHTML = `<span style="background:white; color:black; padding:2px 8px; border-radius:10px; font-size:12px;">${count}</span> &nbsp; ₹${total}`;
+        } else {
+            btn.classList.remove('visible');
+        }
+    }
+
+    function startCheckout() {
+        const total = menuItems.reduce((s, i) => s + (i.price * i.qty), 0);
+        if (total === 0) return;
+        document.getElementById('checkoutBtn').classList.remove('visible');
+        document.getElementById('inputArea').style.display = 'flex';
+        addMsg("user", "Order Ready! ✅");
+        setTimeout(() => {
+            step = 1;
+            addMsg("bot", `Super! Bill: <b>₹${total}</b>.<br><br>Delivery-க்கு உங்கள் விவரங்களை அனுப்பவும்:<br>Eg: <b>Raja 9876543210 Mylapore</b><br>(Comma தேவையில்லை)`);
+        }, 600);
+    }
+
+    // 🔥 SMART PARSING LOGIC 🔥
+    function processInput() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMsg("user", text);
+        input.value = "";
+
+        if (step === 1) {
+            // Logic: Find 10 digit number. Before is Name, After is Address.
+            const phoneRegex = /[6-9]\d{9}/; // Finds 10 digit number starting with 6-9
+            const match = text.match(phoneRegex);
+
+            if (match) {
+                const phone = match[0];
+                const splitIndex = match.index;
+                
+                // Get Name (Before Phone)
+                let name = text.substring(0, splitIndex).replace(/,/g, '').trim();
+                if(!name) name = "Friend"; // Fallback name
+
+                // Get Address (After Phone)
+                let address = text.substring(splitIndex + phone.length).replace(/,/g, '').trim();
+                if(!address) address = "Pickup/Takeaway"; // Fallback address
+
+                customerData = { name, phone, address };
+                step = 4;
+                placeOrder();
+
+            } else {
+                // If no phone number found, accept text but warn nicely
+                // Or try splitting by comma if they actually used commas
+                if(text.includes(',')) {
+                    const parts = text.split(',');
+                    customerData = {
+                        name: parts[0].trim(),
+                        phone: parts[1] ? parts[1].trim() : "Not Provided",
+                        address: parts.slice(2).join(' ').trim() || ""
+                    };
+                    step = 4;
+                    placeOrder();
+                } else {
+                    // Fallback: Just take whole text as address/details
+                    addMsg("bot", "⚠️ Mobile Number காணவில்லை. தயவுசெய்து 10-digit மொபைல் நம்பருடன் அனுப்பவும்.");
+                }
+            }
+        }
+    }
+
+    function placeOrder() {
+        const orderedItems = menuItems.filter(i => i.qty > 0);
+        const total = orderedItems.reduce((s, i) => s + (i.price * i.qty), 0);
+        
+        let itemStrWA = orderedItems.map(i => `${i.name} x ${i.qty}`).join("%0A");
+        let itemStrSheet = orderedItems.map(i => `${i.name} (${i.qty})`).join(", ");
+        
+        const msg = `*New Order!* 🥘%0A%0A*Name:* ${customerData.name}%0A*Phone:* ${customerData.phone}%0A*Addr:* ${customerData.address}%0A%0A*Items:*%0A${itemStrWA}%0A%0A*Total: ₹${total}*`;
+        const waLink = `https://wa.me/${ownerNumber}?text=${msg}`;
+
+        addMsg("bot", "Placing Order... ⏳");
+        document.getElementById('inputArea').style.display = 'none';
+
+        fetch(scriptURL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                shopId: SHOP_ID, name: customerData.name, phone: customerData.phone,
+                address: customerData.address, items: itemStrSheet, total: total
+            })
+        }).then(() => showSuccess(waLink, total)).catch(() => showSuccess(waLink, total));
+    }
+
+    function showSuccess(link, total) {
+        const chatBox = document.getElementById('chatBox');
+        const successHTML = `
+        <div style="text-align:center; margin-top:20px;">
+            <div class="success-checkmark">
+                <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="check-circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="check-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+            <h3 style="color:#4CAF50; margin:10px 0;">Order Placed!</h3>
+            <p style="font-size:14px; color:#555;">Total: ₹${total}</p>
+            <a href="${link}" target="_blank" style="background:#25D366; color:white; text-decoration:none; padding:12px 25px; border-radius:30px; display:inline-block; font-weight:bold; box-shadow:0 4px 10px rgba(37,211,102,0.3); margin-top:10px;">
+                🚀 WhatsApp-ல் அனுப்பு
+            </a>
+        </div>`;
+        const div = document.createElement('div'); div.innerHTML = successHTML;
+        chatBox.appendChild(div); scrollToBottom();
+    }
+
+    function addMsg(type, text) {
+        const chatBox = document.getElementById('chatBox');
+        const div = document.createElement('div'); div.className = `message ${type}-msg`;
+        div.innerHTML = text; chatBox.appendChild(div); scrollToBottom();
+    }
+    function scrollToBottom() { const c = document.getElementById('chatBox'); c.scrollTop = c.scrollHeight; }
+    function handleKeyPress(e) { if (e.key === 'Enter') processInput(); }
+</script>
+</body>
+</html>
